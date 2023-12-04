@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.5)
+
+project(myplugin)
+
+# 指定构建动态链接库
+add_library(myplugin SHARED
+  myplugin.cpp
+)
+
+# 设置输出路径
+set_target_properties(myplugin
+  PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/plugins
+)
+
+# 在 Windows 平台上，需要将输出文件的后缀名设置为 .dll
+if(WIN32)
+  set_target_properties(myplugin
+    PROPERTIES
+    SUFFIX ".dll"
+  )
+endif()

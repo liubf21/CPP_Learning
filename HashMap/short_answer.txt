@@ -1,0 +1,43 @@
+Assignment 3: STL HashMap (short answer questions)
+Names:
+
+1. Explain the difference between at() and the implementation of the operator []. Wy did you have to overload one and not the other? 
+Hint: You will likely only need to read the header comments to do this
+
+at()
+Returns a l-value reference to the mapped value given a key.
+If no such element exists, throws exception of type std::out_of_range.
+Parameters: key of type K.
+Return value: l-value reference to type V, the mapped value of key.
+
+Indexing operator []
+Retrieves a reference to the mapped value corresponding to this key.
+If no such key exists, a key/mapped value pair will be added to the HashMap.
+The mapped value will have the default value for type M.
+
+2.In addition to the HashMap::find member function, there is also a std::find function in the STL algorithms library. 
+If you were searching for key k in HashMap m, is it preferable to call m.find(k) or std::find(m.begin(), m.end(), k)? 
+Hint: on average, there are a constant number of elements per bucket. Also, one of these functions has a faster Big-O complexity 
+because one of them uses a loop while another does something smarter.
+
+HashMap::find use hash funciton to find the key, so it is faster than std::find.
+
+3. This HashMap class is RAII-compliant. Explain why.
+Though map will clear in Destructor, but it doesn't release the memory, so memory leak will happen.
+
+4. Briefly explain the implementation of HashMapIterator's operator++, which we provide for you. How does it work and what checks does it have?
+```
+template <typename Map, bool IsConst>
+HashMapIterator<Map, IsConst>& HashMapIterator<Map, IsConst>::operator++() {
+    _node = _node->next; // _node can't be nullptr - that would be incrementing end()
+    if (_node == nullptr) { // if you reach the end of the bucket, find the next bucket
+        for (++_bucket; _bucket < _buckets_array->size(); ++_bucket) {
+            _node = (*_buckets_array)[_bucket];
+            if (_node != nullptr) {
+                return *this;
+            }
+        }
+    }
+    return *this;
+}
+```
