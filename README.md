@@ -81,6 +81,11 @@
 4. **正则表达式处理**
    - `std::regex` 和相关函数。
 
+5. **日期和时间处理**
+
+6. **随机数生成**
+
+
 ### 高级语言特性
 
 1. **类型系统和变量**
@@ -132,6 +137,93 @@
    - 内存池、自定义分配器。
    - RAII(资源获取即初始化)模式。
 
+#### 智能指针
+
+在 C++ 中，智能指针是一种自动管理资源(如动态分配的内存)生命周期的对象。它们主要包括 `std::unique_ptr`, `std::shared_ptr`, 和 `std::weak_ptr`。以下是这些智能指针的详细使用示例，以及它们的主要成员函数和特性。
+
+##### 1. `std::unique_ptr`
+
+`std::unique_ptr` 是一种独占所有权的智能指针，一次只能有一个 `std::unique_ptr` 拥有对某个资源的所有权。当 `std::unique_ptr` 被销毁时(如离开作用域或被显式删除)，它指向的对象也会被自动删除。
+
+**基本使用**:
+
+```cpp
+#include <memory>
+
+struct MyClass {
+    int x;
+    MyClass(int val) : x(val) {}
+    ~MyClass() { std::cout << "资源释放\n"; }
+};
+
+int main() {
+    std::unique_ptr<MyClass> ptr(new MyClass(10));
+    std::cout << ptr->x << std::endl;  // 使用 -> 访问成员
+}
+```
+
+**主要函数**:
+
+- `get()`: 返回存储的指针。
+- `reset()`: 释放所有权并可选择绑定到新的原始指针。
+- `release()`: 释放所有权但不删除对象。
+- `swap()`: 交换两个 `unique_ptr` 对象。
+
+##### 2. `std::shared_ptr`
+
+`std::shared_ptr` 是一种共享所有权的智能指针。可以有多个 `std::shared_ptr` 实例指向同一个对象。对象仅在最后一个指向它的 `std::shared_ptr` 被销毁或重置时被删除。
+
+**基本使用**:
+
+```cpp
+#include <memory>
+
+int main() {
+    std::shared_ptr<MyClass> ptr1 = std::make_shared<MyClass>(20);
+    std::shared_ptr<MyClass> ptr2 = ptr1;  // ptr1 和 ptr2 共享所有权
+
+    std::cout << ptr1->x << std::endl;
+    std::cout << ptr2.use_count() << std::endl;  // 输出共享所有者的数量
+}
+```
+
+**主要函数**:
+
+- `get()`: 返回存储的指针。
+- `reset()`: 释放所有权并可选择绑定到新的原始指针。
+- `use_count()`: 返回指向对象的 `shared_ptr` 实例数量。
+- `swap()`: 交换两个 `shared_ptr` 对象。
+
+##### 3. `std::weak_ptr`
+
+`std::weak_ptr` 是一种不控制所有权的智能指针。它被设计用来观察 `std::shared_ptr`，但不延长被观察对象的生命周期。当其指向的对象被删除时，`std::weak_ptr` 会自动变为空。
+
+**基本使用**:
+
+```cpp
+#include <memory>
+
+int main() {
+    std::shared_ptr<MyClass> shared = std::make_shared<MyClass>(30);
+    std::weak_ptr<MyClass> weak = shared;
+
+    if (auto temp = weak.lock()) {  // 尝试将 weak_ptr 转换为 shared_ptr
+        std::cout << temp->x << std::endl;
+    }
+}
+```
+
+**主要函数**:
+
+- `expired()`: 检查所指对象是否已被删除。
+- `lock()`: 尝试将 `std::weak_ptr` 转换为 `std::shared_ptr`。
+- `reset()`: 释放对对象的观察。
+- `swap()`: 交换两个 `std::weak_ptr` 对象。
+
+总结:
+
+智能指针的使用可以大大减少资源泄漏的风险，并使资源管理更加简单。它们是现代 C++ 中管理动态分配资源的首选方式，相较于裸指针，提供了更安全、更高效的资源管理机制。
+
 ### 元编程和编译时计算
 
 - **编译时计算**
@@ -182,7 +274,10 @@
     - 编写可以在不同操作系统(如 Windows, Linux, macOS)上编译和运行的代码。
 
 
+
 ## 多线程和网络编程
+
+阅读《Linux 多线程服务端编程》
 
 - **线程管理**：创建和控制线程的生命周期。
 - **同步机制**：互斥量、锁、条件变量、原子操作。
@@ -190,6 +285,14 @@
   - 线程库 (`std::thread`)，任务异步执行 (`std::async`)。
   - 原子操作和内存模型(`std::atomic`)。
     - 并行算法(`std::for_each`，`std::transform`，`std::reduce`)。
+
+
+依赖注入（Dependency Injection，简称 DI）是一种软件设计模式，其目的是实现控制反转（Inversion of Control，简称 IoC）的一种形式，用于减少代码之间的耦合。虽然依赖注入并非 C++ 语言特有的概念，但它在 C++ 中的应用同样重要。
+
+依赖注入指的是组件间依赖关系（通常是服务、配置数据等）不是由组件内部自行创建或查找，而是由外部容器或框架在运行时提供。这种方式有几个关键好处：
+
+1. 降低耦合：组件不需要了解如何创建其依赖项。
+2. 增强模块化：更容易替换组件的实现或配置。提高测试性：便于对组件进行单元测试，因为依赖可以被模拟（mock）或存根（stub）。
 
 
 ## 数据结构和算法
@@ -212,6 +315,8 @@ AVL树 Splay树 B树和B+树 红黑树(https://juejin.cn/post/684490384251394458
 
 ## 设计模式
 
+https://www.liaoxuefeng.com/wiki/1252599548343744/1264742167474528
+
 1. **设计模式**:
    - 常见的设计模式，如单例、工厂、观察者、策略、适配器模式等。
 
@@ -225,7 +330,155 @@ AVL树 Splay树 B树和B+树 红黑树(https://juejin.cn/post/684490384251394458
 观察者模式
 工厂模式： 简单工厂模式 工厂方式模式和抽象工厂模式 模板工厂模式
 https://zhuanlan.zhihu.com/p/83535678
-https://www.liaoxuefeng.com/wiki/1252599548343744/1264742167474528
+
+
+Observer 模式是一种设计模式，允许对象(观察者)订阅另一个对象(主题)的状态变化，当主题状态变化时，自动通知所有观察者。这在多线程环境中尤为重要，因为状态的改变可能由不同的线程触发。
+
+Observer 定义了对象之间的一对多依赖关系，使得当一个对象(称为“subject”或“observable”)改变状态时，所有依赖它的对象(称为“observers”)都会得到通知并自动更新。下面是使用 C++ 实现的 Observer 设计模式的示例：
+
+首先，定义 Observer 和 Observable 的接口：
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+// Observer 接口声明了更新接口，用于从 subjects 接收更新
+class Observer {
+public:
+    virtual ~Observer() {}
+    virtual void Update(const std::string &message_from_subject) = 0;
+};
+
+// Subject 接口声明了一系列管理 observers 的方法
+class Subject {
+public:
+    virtual ~Subject() {}
+    virtual void Attach(Observer *observer) = 0;
+    virtual void Detach(Observer *observer) = 0;
+    virtual void Notify() = 0;
+};
+```
+
+然后，实现具体的 Subject 类，它在状态改变时通知所有的 Observers：
+
+```cpp
+// ConcreteSubject 管理观察者的订阅和取消订阅，并通知他们状态改变
+class ConcreteSubject : public Subject {
+public:
+    void Attach(Observer *observer) override {
+        list_observer_.push_back(observer);
+    }
+
+    void Detach(Observer *observer) override {
+        list_observer_.remove(observer);
+    }
+
+    void Notify() override {
+        std::list<Observer *>::iterator iterator = list_observer_.begin();
+        HowManyObserver();
+        while (iterator != list_observer_.end()) {
+            (*iterator)->Update(message_);
+            ++iterator;
+        }
+    }
+
+    void CreateMessage(std::string message = "Empty") {
+        this->message_ = message;
+        Notify();
+    }
+
+    void HowManyObserver() {
+        std::cout << "There are " << list_observer_.size() << " observers in the list.\n";
+    }
+
+private:
+    std::list<Observer *> list_observer_;
+    std::string message_;
+};
+```
+
+最后，实现具体的 Observer 类，它会接收来自 Subject 的更新：
+
+```cpp
+// ConcreteObserver 每次收到更新消息时都会打印输出
+class ConcreteObserver : public Observer {
+public:
+    ConcreteObserver(Subject &subject) : subject_(subject) {
+        this->subject_.Attach(this);
+        std::cout << "Hi, I'm the Observer \"" << ++ConcreteObserver::static_number_ << "\".\n";
+        this->number_ = ConcreteObserver::static_number_;
+    }
+
+    virtual ~ConcreteObserver() {
+        std::cout << "Goodbye, I was the Observer \"" << this->number_ << "\".\n";
+    }
+
+    void Update(const std::string &message_from_subject) override {
+        message_from_subject_ = message_from_subject;
+        PrintInfo();
+    }
+
+    void RemoveMeFromTheList() {
+        subject_.Detach(this);
+        std::cout << "Observer \"" << number_ << "\" removed from the list.\n";
+    }
+
+    void PrintInfo() {
+        std::cout << "Observer \"" << this->number_ << "\": a new message is available --> " << this->message_from_subject_ << "\n";
+    }
+
+private:
+    std::string message_from_subject_;
+    Subject &subject_;
+    static int static_number_;
+    int number_;
+};
+
+int ConcreteObserver::static_number_ = 0;
+
+void ClientCode() {
+    ConcreteSubject *subject = new ConcreteSubject;
+    ConcreteObserver *observer1 = new ConcreteObserver(*subject);
+    ConcreteObserver *observer2 = new ConcreteObserver(*subject);
+    ConcreteObserver *observer3 = new ConcreteObserver(*subject);
+    ConcreteObserver *observer4;
+    ConcreteObserver *observer5;
+
+    subject->CreateMessage("Hello World! :D");
+    observer3->RemoveMeFromTheList();
+
+    subject->CreateMessage("The weather is hot today! :p");
+    observer4 = new ConcreteObserver(*subject);
+
+    observer2->RemoveMeFromTheList();
+    observer5 = new ConcreteObserver(*subject);
+
+    subject->CreateMessage("My new car is great! ;)");
+    observer5->RemoveMeFromTheList();
+
+    observer4->RemoveMeFromTheList();
+    observer1->RemoveMeFromTheList();
+
+    delete observer5;
+    delete observer4;
+    delete observer3;
+    delete observer2;
+    delete observer1;
+    delete subject;
+}
+
+int main() {
+    ClientCode();
+    return 0;
+}
+```
+
+在这个例子中，`ConcreteSubject` 类是一个具体的被观察
+
+对象，它维护一个 Observer 列表并在状态改变时通知它们。`ConcreteObserver` 类是一个具体的观察者，它实现了 `Update` 方法来接收来自 Subject 的消息。`ClientCode` 函数演示了如何创建 Subject 和多个 Observers，并展示了当 Subject 状态改变时如何通知它们。
+
+Observer 模式广泛用于实现事件处理系统、数据模型与视图的分离(如 MVC 架构)以及发布/订阅系统。
 
 ## 单元测试
 
