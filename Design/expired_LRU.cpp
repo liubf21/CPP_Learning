@@ -162,6 +162,7 @@ int main() {
   Song *song5 = new Song("song5", 5);
   Song *song6 = new Song("song6", 6);
   Song *song7 = new Song("song7", 7);
+  Song *song7_2 = new Song("song7", 70);
 
   songList.Set("song1", song1);
   songList.Set("song2", song2);
@@ -186,13 +187,17 @@ int main() {
   assert(songList.Get("song2") ==
          nullptr);  // song2 should be evicted since it was least recently used
 
+  // Test update
+  songList.Set("song7", song7_2);
+  assert(songList.Get("song7") == song7_2);
+
   // Test eviction by expiration
   songList.SetClock(4);
   assert(songList.Get("song3") == nullptr);
   assert(songList.Get("song4") == nullptr);
   assert(songList.Get("song5") == song5);
   assert(songList.Get("song6") == song6);
-  assert(songList.Get("song7") == song7);
+  assert(songList.Get("song7") == song7_2);
 
   std::cout << "All tests passed!" << std::endl;
 
