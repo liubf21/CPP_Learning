@@ -20,186 +20,167 @@ The functions below should be implemented :
 - EvictItems()
 
 **/
-
-#include <cassert>
+ 
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
-using namespace std;
-
-// map key存失效时间，value存song
-// 链表实现 LRU
+#include <cassert>
 
 class Song {
-  string name_;
-  int expired_time_;
-  bool is_deleted_ = false;
+public:
+    std::string name;
+    int expiredTime;
 
-  Song *prev = nullptr;
-  Song *next = nullptr;
+    Song(std::string name, int expiredTime)
+        : name(std::move(name)), expiredTime(expiredTime) {}
 
- public:
-  Song() {}
-  Song(string name, int expired_time)
-      : name_(name), expired_time_(expired_time) {}
-  friend class SongList;  // 为了让SongList可以访问Song的private成员
+    // No need for manual memory management
 };
 
 class SongList {
-  Song *front;  // 哨兵节点
-  Song *back;
-  int size_;
-  int clock_ = 0;
+private:
+    struct ListNode {
+        std::shared_ptr<Song> song;
+        std::shared_ptr<ListNode> prev;
+        std::shared_ptr<ListNode> next;
 
-  unordered_map<string, Song *> songs;
-  map<int, Song *> expired_time;
+        ListNode(std::shared_ptr<Song> s) : song(std::move(s)) {}
+    };
 
-  void EvictItems();
-  void Print() {
-    Song *cur = front->next;
-    printf("Head -> ");
-    while (cur != back) {
-      printf("%s -> ", cur->name_.c_str());
-      cur = cur->next;
+    std::shared_ptr<ListNode> head;
+    std::shared_ptr<ListNode> tail;
+    int maxSize;
+    int clock = 0;
+
+    std::unordered_map<std::string, std::shared_ptr<ListNode>> lookup;
+    std::map<int, std::shared_ptr<ListNode>> expirationMap;
+
+    void EvictItems();
+
+public:
+    explicit SongList(int size) : maxSize(size) {
+        head = std::make_shared<ListNode>(nullptr);
+        tail = std::make_shared<ListNode>(nullptr);
+        head->next = tail;
+        tail->prev = head;
     }
-    printf("Tail\n");
-  }
 
- public:
-  SongList(int size) : size_(size) {
-    front = new (Song);
-    back = new (Song);
-    front->next = back;
-    back->prev = front;
-  }
-  ~SongList() {
-    Song *cur = front;
-    while (cur) {
-      Song *next = cur->next;
-      delete cur;
-      cur = next;
-    }
-  }
-  Song *Get(string name);
-  void Set(string name, Song *song);
-  void SetClock(int clock) {
-    printf("SetClock %d\n", clock);
-    clock_ = clock;
-  }
+    std::shared_ptr<Song> Get(const std::string& name);
+    void Set(const std::string& name, std::shared_ptr<Song> song);
+    void SetClock(int newClock) { clock = newClock; }
 };
-
-Song *SongList::Get(string name) {
-  EvictItems();
-  if (songs.count(name) > 0) {
-    printf("Get song %s\n", name.c_str());
-    songs[name]->prev->next = songs[name]->next;
-    songs[name]->next->prev = nullptr;
-    songs[name]->next->prev = songs[name]->prev;
-    songs[name]->next = front->next;
-    songs[name]->prev = front;
-    front->next = songs[name];
-    songs[name]->next->prev = songs[name];
-    return songs[name];
-  }
-  printf("song %s not exists\n", name.c_str());
-  return nullptr;
-};
-
-void SongList::Set(string name, Song *song) {
-  EvictItems();
-  if (songs.count(name) > 0) {
-    printf("song %s already exists\n", name.c_str());
-    songs[name]->prev->next = songs[name]->next;
-    songs[name]->next->prev = songs[name]->prev;
-    expired_time.erase(songs[name]->expired_time_);
-    delete songs[name];
-  }
-
-  printf("Set song %s\n", name.c_str());
-  songs[name] = song;
-  expired_time[song->expired_time_] = song;
-  song->next = front->next;
-  song->prev = front;
-  front->next = song;
-  song->next->prev = song;
-}
 
 void SongList::EvictItems() {
-  printf("EvictItems\n");
-  for (auto kv : expired_time) {
-    if (kv.first > clock_) break;
-    printf("delete expired song %s\n", kv.second->name_.c_str());
-    Song *deletedSong = kv.second;
-    deletedSong->prev->next = deletedSong->next;
-    deletedSong->next->prev = deletedSong->prev;
+    // Evict expired items
+    while (!expirationMap.empty() && expirationMap.begin()->first <= clock) {
+        auto expiredNode = expirationMap.begin()->second;
+        expirationMap.erase(expirationMap.begin());
+        lookup.erase(expiredNode->song->name);
 
-    songs.erase(deletedSong->name_);
-    expired_time.erase(deletedSong->expired_time_);
-    delete deletedSong;
-  }
+        // Remove from list
+        expiredNode->prev->next = expiredNode->next;
+        expiredNode->next->prev = expiredNode->prev;
+    }
 
-  // printf("songs.size(): %d ~ size_: %d\n", int(songs.size()), size_);
-  for (int i = songs.size() - size_; i > 0; i--) {
-    printf("delete least used song %s\n", back->prev->name_.c_str());
-    Song *deletedSong = back->prev;
-    back->prev = deletedSong->prev;
-    deletedSong->prev->next = back;
+    // Evict least recently used items if necessary
+    while (int(lookup.size()) > maxSize) {
+        auto lruNode = tail->prev;
+        lookup.erase(lruNode->song->name);
+        expirationMap.erase(lruNode->song->expiredTime);
 
-    songs.erase(deletedSong->name_);
-    expired_time.erase(deletedSong->expired_time_);
-    delete deletedSong;
-  }
-  Print();
+        // Remove from list
+        lruNode->prev->next = tail;
+        tail->prev = lruNode->prev;
+    }
 }
 
+std::shared_ptr<Song> SongList::Get(const std::string& name) {
+    EvictItems();
+    if (lookup.count(name)) {
+        auto node = lookup[name];
+
+        // Move to front
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+        node->next = head->next;
+        node->prev = head;
+        head->next->prev = node;
+        head->next = node;
+
+        return node->song;
+    }
+    return nullptr;
+}
+
+void SongList::Set(const std::string& name, std::shared_ptr<Song> song) {
+    std::shared_ptr<ListNode> node;
+
+    if (lookup.count(name)) {
+        // Replace existing song
+        node = lookup[name];
+        node->song = song;
+        expirationMap.erase(node->song->expiredTime);
+    } else {
+        // Create a new node
+        node = std::make_shared<ListNode>(song);
+        node->prev = head;
+        node->next = head->next;
+        head->next->prev = node;
+        head->next = node;
+    }
+
+    lookup[name] = node;
+    expirationMap[song->expiredTime] = node;
+}
+
+
 int main() {
-  SongList songList(5);
-  Song *song1 = new Song("song1", 1);
-  Song *song2 = new Song("song2", 2);
-  Song *song3 = new Song("song3", 3);
-  Song *song4 = new Song("song4", 4);
-  Song *song5 = new Song("song5", 5);
-  Song *song6 = new Song("song6", 6);
-  Song *song7 = new Song("song7", 7);
-  Song *song7_2 = new Song("song7", 70);
+    SongList songList(3);
 
-  songList.Set("song1", song1);
-  songList.Set("song2", song2);
-  songList.Set("song3", song3);
-  songList.Set("song4", song4);
-  songList.Set("song5", song5);
+    auto song1 = std::make_shared<Song>("song1", 1);
+    auto song2 = std::make_shared<Song>("song2", 3);
+    auto song3 = std::make_shared<Song>("song3", 4);
+    auto song4 = std::make_shared<Song>("song4", 5);
+    auto song5 = std::make_shared<Song>("song5", 6);
 
-  // Test retrieval
-  assert(songList.Get("song1") == song1);
-  assert(songList.Get("song2") == song2);
-  assert(songList.Get("song3") == song3);
-  assert(songList.Get("song4") == song4);
-  assert(songList.Get("song5") == song5);
+    // Add and retrieve songs
+    songList.Set("song1", song1);
+    songList.Set("song2", song2);
+    songList.Set("song3", song3);
+    assert(songList.Get("song1") == song1);
+    assert(songList.Get("song2") == song2);
+    assert(songList.Get("song3") == song3);
 
-  // Test eviction of least recently used
-  songList.Set("song6", song6);
-  assert(songList.Get("song6") == song6);
-  assert(songList.Get("song1") ==
-         nullptr);  // song1 should be evicted since it was least recently used
-  songList.Set("song7", song7);
-  assert(songList.Get("song7") == song7);
-  assert(songList.Get("song2") ==
-         nullptr);  // song2 should be evicted since it was least recently used
+    // Test LRU eviction
+    songList.Set("song4", song4);  // Should evict song1 (LRU)
+    assert(songList.Get("song1") == nullptr);
+    assert(songList.Get("song4") == song4);
 
-  // Test update
-  songList.Set("song7", song7_2);
-  assert(songList.Get("song7") == song7_2);
+    // Access song2 to make it recently used
+    assert(songList.Get("song2") == song2);
 
-  // Test eviction by expiration
-  songList.SetClock(4);
-  assert(songList.Get("song3") == nullptr);
-  assert(songList.Get("song4") == nullptr);
-  assert(songList.Get("song5") == song5);
-  assert(songList.Get("song6") == song6);
-  assert(songList.Get("song7") == song7_2);
+    // Add a new song, which should evict the least recently used song (song3)
+    songList.Set("song5", song5);
+    assert(songList.Get("song3") == nullptr);
+    assert(songList.Get("song5") == song5);
 
-  std::cout << "All tests passed!" << std::endl;
+    // Test eviction by expiration
+    songList.SetClock(4);  // Evicts song2 (expired)
+    assert(songList.Get("song2") == nullptr);
 
-  return 0;
+    // Add the same song again
+    auto song2_new = std::make_shared<Song>("song2", 7);
+    songList.Set("song2", song2_new);
+    assert(songList.Get("song2") == song2_new);
+
+    // Test multiple expirations
+    songList.SetClock(6);  // Should evict song4 and song5 (expired)
+    assert(songList.Get("song4") == nullptr);
+    assert(songList.Get("song5") == nullptr);
+    assert(songList.Get("song2") == song2_new);  // song2_new should still be in the cache
+
+    std::cout << "All tests passed!\n";
+    return 0;
 }

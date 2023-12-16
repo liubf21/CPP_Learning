@@ -12,7 +12,11 @@ void GetMemory2(char **p) // use double pointer to solve the problem
     *p = (char *)malloc(100);
 }
 
-void Test() // 三个问题野指针，内存泄露，和值传递
+// Three problems:
+// 1. p is a local variable, it will be released after the function is over
+// 2. p is not checked, it may be NULL
+// 3. memory is not released, memory leak
+void Test()
 {
     char *str = NULL;
     GetMemory(str);
@@ -20,7 +24,7 @@ void Test() // 三个问题野指针，内存泄露，和值传递
     printf(str);
 }
 
-void Test2()
+void Test2() 
 {
     char *str = NULL;
     GetMemory2(&str);

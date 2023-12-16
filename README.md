@@ -179,7 +179,7 @@ int main() {
 #include <memory>
 
 int main() {
-    std::shared_ptr<MyClass> ptr1 = std::make_shared<MyClass>(20);
+    std::shared_ptr<MyClass> ptr1 = std::make_shared<MyClass>(20); // std::shared_ptr<MyClass> ptr1(new int(20));
     std::shared_ptr<MyClass> ptr2 = ptr1;  // ptr1 和 ptr2 共享所有权
 
     std::cout << ptr1->x << std::endl;

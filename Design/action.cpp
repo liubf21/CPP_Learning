@@ -33,13 +33,13 @@ public:
 // 我们知道，模板多态是依赖于指针和引用的。编译器能够通过指针和引用判断实际指向的类型，并且调用实际类型
 // 里面 override 了的虚函数。所以在使用模板模式的时候，常常创建基类指针来调用实现类的函数。
 
-// int main() {
-//     AbstractClass *abstract;
-//     abstract = new ConcreteClassB();
-//     abstract->Operation1();
-//     abstract->Operation2();
-//     return 0;
-// }
+int test1() {
+    AbstractClass *abstract;
+    abstract = new ConcreteClassB();
+    abstract->Operation1();
+    abstract->Operation2();
+    return 0;
+}
 
 // 策略模式：定义一系列算法并加以封装，使得这些算法可以互相替换。
 // 这样，一种算法就不需要依附于某个实现类了，而是自成一类。
@@ -47,8 +47,6 @@ public:
 // 所有对象具有一个对象基类 O​，对象基类 O​ 含有所有的方法基类指针 A*​、B*​，从而实现多态。
 // 注意到对象基类如果仅含有方法基类指针，实际上没法调用方法基类的方法，故而还需要调用接口
 // 每种对象是一个具体的对象类 O1、O2、O3​，每种都会继承对象类 O​，同时让方法基类指针 A*​、B* ​具体指向方法派生类上 Ax、By​
-
-#include <iostream>
 
 class FlyBehavior {
 public:
@@ -156,7 +154,7 @@ public:
     }
 };
 
-int main() {
+int test2() {
     Duck* mallard = new MallardDuck();
     mallard->display();
     mallard->performFly();
@@ -168,8 +166,16 @@ int main() {
     return 0;
 }
 
+int main() {
+    test1();
+    test2();
+    return 0;
+}
+
 /*
 output:
+Do Operation 1 of B
+Do Operation 2 of B
 I'm a real Mallard duck
 I'm flying!!
 Quack
