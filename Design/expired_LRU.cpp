@@ -28,8 +28,7 @@ The functions below should be implemented :
 #include <unordered_map>
 #include <cassert>
 
-class Song {
-public:
+struct Song { // use struct instead of class
     std::string name;
     int expiredTime;
 
@@ -76,7 +75,7 @@ void SongList::EvictItems() {
     // Evict expired items
     while (!expirationMap.empty() && expirationMap.begin()->first <= clock) {
         auto expiredNode = expirationMap.begin()->second;
-        expirationMap.erase(expirationMap.begin());
+        expirationMap.erase(expirationMap.begin()); // use iterator to erase the element, not the key.(enhance performance)
         lookup.erase(expiredNode->song->name);
 
         // Remove from list

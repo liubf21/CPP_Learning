@@ -1,12 +1,14 @@
-#include <map>
+#include <unordered_map>
+#include <list>
 #include <iostream>
+
 
 // implement a LRU cache with a double linked list and a map
 class LRUCache
 {
     struct LNode
     {
-        int key;
+        int key; // for delete the node from map
         int data;
         LNode *pre;
         LNode *next;
@@ -15,7 +17,7 @@ class LRUCache
     };
     int capacity__;
     LNode *head, *tail;
-    std::map<int, LNode *> mp; // key to node, for quick access
+    std::unordered_map<int, LNode *> mp; // key to node, for quick access
 
     // remove node from list, but not delete it. the user should manage the memory manually
     void removeNode(LNode *node)
@@ -73,7 +75,7 @@ public:
         }
         else
         {
-            if (mp.size() == capacity__)
+            if (int(mp.size()) == capacity__)
             {
                 LNode *tmp = tail->pre;
                 removeNode(tmp);
@@ -104,7 +106,50 @@ public:
  * obj->put(key,value);
  */
 
+class LRUCacheV2 {
+    std::unordered_map<int, std::list<std::pair<int, int>>::iterator> mp;
+    std::list<std::pair<int, int>> cacheList;
+    int capacity__;
+
+public:
+    LRUCacheV2(int capacity) : capacity__(capacity) {}
+
+    int get(int key) {
+        auto it = mp.find(key);
+        if (it == mp.end()) {
+            return -1;
+        }
+        int value = it->second->second;
+        // cacheList.erase(it->second);
+        // cacheList.push_front(std::make_pair(key, value));
+        // mp[key] = cacheList.begin();
+        cacheList.splice(cacheList.begin(), cacheList, it->second); // move the node to the front, more efficient
+        return value;
+    }
+
+    void put(int key, int value) {
+        auto it = mp.find(key);
+        if (it != mp.end()) {
+            // cacheList.erase(it->second);
+            // cacheList.push_front(std::make_pair(key, value));
+            // mp[key] = cacheList.begin();
+            cacheList.splice(cacheList.begin(), cacheList, it->second); // move the node to the front, more efficient
+            it->second->second = value;
+        } else {
+            if (int(cacheList.size()) == capacity__) {
+                int keyToDel = cacheList.back().first;
+                cacheList.pop_back();
+                mp.erase(keyToDel);
+            }
+            cacheList.push_front(std::make_pair(key, value));
+            mp[key] = cacheList.begin();
+        }
+    }
+
+};
+
 int main() {
+    std::cout << "Test LRU Cache" << std::endl;
     LRUCache cache(2);  // Capacity of the cache
 
     cache.put(1, 1);
@@ -118,6 +163,21 @@ int main() {
     std::cout << "Get 1: " << cache.get(1) << std::endl; // returns -1 (not found)
     std::cout << "Get 3: " << cache.get(3) << std::endl; // returns 3
     std::cout << "Get 4: " << cache.get(4) << std::endl; // returns 4
+
+    std::cout << "Test LRU Cache V2" << std::endl;
+    LRUCacheV2 cache2(2);  // Capacity of the cache
+
+    cache2.put(1, 1);
+    cache2.put(2, 2);
+    std::cout << "Get 1: " << cache2.get(1) << std::endl; // returns 1
+
+    cache2.put(3, 3);    // evicts key 2
+    std::cout << "Get 2: " << cache2.get(2) << std::endl; // returns -1 (not found)
+
+    cache2.put(4, 4);    // evicts key 1
+    std::cout << "Get 1: " << cache2.get(1) << std::endl; // returns -1 (not found)
+    std::cout << "Get 3: " << cache2.get(3) << std::endl; // returns 3
+    std::cout << "Get 4: " << cache2.get(4) << std::endl; // returns 4
 
     return 0;
 }
